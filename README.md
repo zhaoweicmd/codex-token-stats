@@ -70,7 +70,7 @@ Codex 只记录任务的工作目录，不记录正式项目名，所以同一�
 - `project_rules_mac` / `project_rules_win`：分别只对 macOS / Windows 生效，优先于通用 `project_rules`
 - `default_project_mac` / `default_project_win`：分别指定 macOS / Windows 的默认项目
 
-当前 `config.json` 的 Mac 配置为：法律类关键词和 `/Users/Admin/赵玮` 归入 `法律文书`，其余全部归入 `it相关`。Windows 配置留空，把 Windows 的两个项目名填入 `default_project_win` 和 `project_rules_win` 后即可各自生效。
+`config.json` 按系统分别配置项目规则：macOS 和 Windows 可各自指定默认项目与项目规则，未填写的一侧使用通用配置或按目录自动归组。示例见 `config.example.json`。
 
 ## 自动扫描
 

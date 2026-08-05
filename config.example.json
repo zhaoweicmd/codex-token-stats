@@ -10,23 +10,23 @@
   },
   "project_aliases": [
     {
-      "path": "/Users/Admin/Documents/it相关",
-      "name": "IT资料"
+      "path": "/path/to/your/project",
+      "name": "示例项目"
     }
   ],
   "project_rules_mac": [
     {
       "type": "path",
-      "pattern": "/Users/Admin/赵玮",
-      "name": "法律文书"
+      "pattern": "/path/to/legal-documents",
+      "name": "法律项目"
     },
     {
       "type": "title",
       "pattern": "起诉|诉讼|案件|判决|合同|协议|加盟|典当|涤除|借贷|审判|立案|文书|法律|案例",
-      "name": "法律文书"
+      "name": "法律项目"
     }
   ],
-  "default_project_mac": "it相关",
+  "default_project_mac": "默认项目",
   "project_rules_win": [],
   "default_project_win": ""
 }
