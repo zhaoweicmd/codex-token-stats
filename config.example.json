@@ -1,0 +1,32 @@
+{
+  "codex_home": "",
+  "db_path": "",
+  "host": "127.0.0.1",
+  "port": 8765,
+  "scan_interval": 60,
+  "provider_names": {
+    "openai": "OpenAI",
+    "custom": "自定义供应商"
+  },
+  "project_aliases": [
+    {
+      "path": "/Users/Admin/Documents/it相关",
+      "name": "IT资料"
+    }
+  ],
+  "project_rules_mac": [
+    {
+      "type": "path",
+      "pattern": "/Users/Admin/赵玮",
+      "name": "法律文书"
+    },
+    {
+      "type": "title",
+      "pattern": "起诉|诉讼|案件|判决|合同|协议|加盟|典当|涤除|借贷|审判|立案|文书|法律|案例",
+      "name": "法律文书"
+    }
+  ],
+  "default_project_mac": "it相关",
+  "project_rules_win": [],
+  "default_project_win": ""
+}

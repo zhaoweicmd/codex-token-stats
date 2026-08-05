@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+codex_stats.db
+codex_stats.db-shm
+codex_stats.db-wal
+config.json
+.DS_Store
