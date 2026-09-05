@@ -42,6 +42,11 @@ function formatTime(ts) {
   return new Date(ts * 1000).toLocaleString("zh-CN", { hour12: false });
 }
 
+function formatMoney(value, partial = false) {
+  if (value == null) return "未配置";
+  return `¥${Number(value).toFixed(4)}${partial ? "*" : ""}`;
+}
+
 function formatDate(day) {
   if (!day) return "-";
   const parts = day.split("-");
@@ -63,6 +68,11 @@ function renderCards(summary) {
     { label: "输入", value: fmt.format(summary.input_tokens), sub: `缓存 ${fmt.format(summary.cached_input_tokens)}` },
     { label: "输出", value: fmt.format(summary.output_tokens), sub: `${fmt.format(summary.turn_count)} 轮` },
     { label: "思考输出", value: fmt.format(summary.reasoning_output_tokens), sub: `缓存写入 ${fmt.format(summary.cache_write_input_tokens)}` },
+    {
+      label: "总费用",
+      value: formatMoney(summary.cost_cny, (summary.unpriced_task_count || 0) > 0),
+      sub: summary.unpriced_task_count ? `${summary.unpriced_task_count} 个任务未配置价格` : "按模型价格计算",
+    },
   ];
   $("cards").innerHTML = cards
     .map(
@@ -122,7 +132,7 @@ function renderBreakdown(el, rows, valueKey = "total_tokens", nameKey = "display
 function renderProjects(rows) {
   const body = $("projectsBody");
   if (!rows || rows.length === 0) {
-    body.innerHTML = '<tr><td colspan="4" class="empty">暂无数据</td></tr>';
+    body.innerHTML = '<tr><td colspan="5" class="empty">暂无数据</td></tr>';
     return;
   }
   const total = rows.reduce(
@@ -130,9 +140,11 @@ function renderProjects(rows) {
       acc.task_count += row.task_count || 0;
       acc.turn_count += row.turn_count || 0;
       acc.total_tokens += row.total_tokens || 0;
+      acc.cost_cny += row.cost_cny || 0;
+      acc.unpriced_task_count += row.unpriced_task_count || 0;
       return acc;
     },
-    { task_count: 0, turn_count: 0, total_tokens: 0 }
+    { task_count: 0, turn_count: 0, total_tokens: 0, cost_cny: 0, unpriced_task_count: 0 }
   );
   body.innerHTML = `
       <tr class="total-row">
@@ -140,6 +152,7 @@ function renderProjects(rows) {
         <td>${total.task_count}</td>
         <td>${total.turn_count}</td>
         <td>${fmt.format(total.total_tokens)}</td>
+        <td title="${total.unpriced_task_count ? "含未配置价格任务" : ""}">${formatMoney(total.cost_cny, total.unpriced_task_count > 0)}</td>
       </tr>` +
     rows
       .map(
@@ -149,6 +162,7 @@ function renderProjects(rows) {
             <td>${row.task_count}</td>
             <td>${row.turn_count}</td>
             <td>${fmt.format(row.total_tokens)}</td>
+            <td title="${row.unpriced_task_count ? "含未配置价格任务" : ""}">${formatMoney(row.cost_cny, row.unpriced_task_count > 0)}</td>
           </tr>`
       )
       .join("");
@@ -157,7 +171,7 @@ function renderProjects(rows) {
 function renderTasks(items) {
   const body = $("tasksBody");
   if (!items || items.length === 0) {
-    body.innerHTML = '<tr><td colspan="6" class="empty">暂无数据</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" class="empty">暂无数据</td></tr>';
     return;
   }
   body.innerHTML = items
@@ -170,6 +184,7 @@ function renderTasks(items) {
           <td>${escapeHtml(item.model || "-")}</td>
           <td>${item.turn_count}</td>
           <td>${fmt.format(item.total_tokens)}</td>
+          <td>${formatMoney(item.cost_cny)}</td>
         </tr>`
     )
     .join("");
@@ -224,10 +239,11 @@ async function openTask(id) {
       `模型: ${task.model || "-"}`,
       `创建: ${formatTime(task.created_at)}`,
       `总Token: ${fmt.format(task.total_tokens)}`,
+      `费用: ${formatMoney(task.cost_cny)}`,
     ].join("  |  ");
     const body = $("turnsBody");
     if (!data.turns.length) {
-      body.innerHTML = '<tr><td colspan="7" class="empty">暂无轮次明细</td></tr>';
+      body.innerHTML = '<tr><td colspan="8" class="empty">暂无轮次明细</td></tr>';
     } else {
     const sums = data.turns.reduce(
       (acc, turn) => {
@@ -236,6 +252,7 @@ async function openTask(id) {
         acc.output_tokens += turn.output_tokens || 0;
         acc.reasoning_output_tokens += turn.reasoning_output_tokens || 0;
         acc.total_tokens += turn.total_tokens || 0;
+        acc.cost_cny += turn.cost_cny || 0;
         return acc;
       },
       {
@@ -244,6 +261,7 @@ async function openTask(id) {
         output_tokens: 0,
         reasoning_output_tokens: 0,
         total_tokens: 0,
+        cost_cny: 0,
       }
     );
     body.innerHTML =
@@ -256,6 +274,7 @@ async function openTask(id) {
           <td>${fmt.format(sums.output_tokens)}</td>
           <td>${fmt.format(sums.reasoning_output_tokens)}</td>
           <td>${fmt.format(sums.total_tokens)}</td>
+          <td>${formatMoney(sums.cost_cny)}</td>
         </tr>` +
       data.turns
         .map(
@@ -268,6 +287,7 @@ async function openTask(id) {
               <td>${fmt.format(turn.output_tokens)}</td>
               <td>${fmt.format(turn.reasoning_output_tokens)}</td>
               <td>${fmt.format(turn.total_tokens)}</td>
+              <td>${formatMoney(turn.cost_cny)}</td>
             </tr>`
         )
         .join("");
@@ -300,6 +320,7 @@ async function saveProject() {
       `模型: ${data.task.model || "-"}`,
       `创建: ${formatTime(data.task.created_at)}`,
       `总Token: ${fmt.format(data.task.total_tokens)}`,
+      `费用: ${formatMoney(data.task.cost_cny)}`,
     ].join("  |  ");
     loadSummary();
     loadTasks();

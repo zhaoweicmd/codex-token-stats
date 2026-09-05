@@ -5,6 +5,8 @@ import sqlite3
 from datetime import date, datetime, time, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
+from .pricing import cost_from_row, cost_sql
+
 USAGE_COLUMNS = (
     "input_tokens",
     "cached_input_tokens",
@@ -12,6 +14,13 @@ USAGE_COLUMNS = (
     "output_tokens",
     "reasoning_output_tokens",
     "total_tokens",
+)
+
+UNPRICED_TASK_SQL = (
+    "COUNT(DISTINCT CASE WHEN LOWER(COALESCE(t.model, '')) NOT IN "
+    "('gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-6-astra', "
+    "'deepseek-v4-flash', 'deepseek-v4-flash-0731', 'deepseek-v4-pro', "
+    "'deepseek-v4-pro-0813') THEN t.id END) AS unpriced_task_count"
 )
 
 
@@ -158,7 +167,9 @@ def summary(
         f"""
         SELECT COUNT(DISTINCT t.id) AS task_count,
                COUNT(tr.id) AS turn_count,
-               {sums}
+               {UNPRICED_TASK_SQL},
+               {sums},
+               {cost_sql()}
         {base}
         """,
         params,
@@ -216,7 +227,9 @@ def grouped(
         SELECT {expression},
                COUNT(DISTINCT t.id) AS task_count,
                COUNT(tr.id) AS turn_count,
-               {sums}
+               {UNPRICED_TASK_SQL},
+               {sums},
+               {cost_sql()}
         {base}
         GROUP BY {group_by}
         ORDER BY total_tokens DESC
@@ -256,7 +269,12 @@ def tasks(
     total = conn.execute(
         f"SELECT COUNT(DISTINCT t.id) {base}", params
     ).fetchone()[0]
-    return [dict(row) for row in rows], int(total)
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["cost_cny"] = cost_from_row(item)
+        result.append(item)
+    return result, int(total)
 
 
 def task_detail(conn: sqlite3.Connection, task_id: str) -> Optional[Dict[str, Any]]:
@@ -274,22 +292,37 @@ def task_detail(conn: sqlite3.Connection, task_id: str) -> Optional[Dict[str, An
         """,
         (task_id,),
     ).fetchone()
-    return dict(row) if row else None
+    if not row:
+        return None
+    result = dict(row)
+    result["input_tokens"] = result["total_input_tokens"]
+    result["cached_input_tokens"] = result["total_cached_input_tokens"]
+    result["cache_write_input_tokens"] = result["total_cache_write_input_tokens"]
+    result["output_tokens"] = result["total_output_tokens"]
+    result["reasoning_output_tokens"] = result["total_reasoning_output_tokens"]
+    result["cost_cny"] = cost_from_row(result)
+    return result
 
 
 def task_turns(conn: sqlite3.Connection, task_id: str) -> List[Dict[str, Any]]:
     rows = conn.execute(
         """
-        SELECT turn_index, ts, input_tokens, cached_input_tokens,
-               cache_write_input_tokens, output_tokens,
-               reasoning_output_tokens, total_tokens
-        FROM turns
-        WHERE task_id = ?
+        SELECT tr.turn_index, tr.ts, tr.input_tokens, tr.cached_input_tokens,
+               tr.cache_write_input_tokens, tr.output_tokens,
+               tr.reasoning_output_tokens, tr.total_tokens, t.model
+        FROM turns tr
+        JOIN tasks t ON t.id = tr.task_id
+        WHERE tr.task_id = ?
         ORDER BY turn_index
         """,
         (task_id,),
     ).fetchall()
-    return [dict(row) for row in rows]
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["cost_cny"] = cost_from_row(item)
+        result.append(item)
+    return result
 
 
 def filters(conn: sqlite3.Connection) -> Dict[str, Any]:

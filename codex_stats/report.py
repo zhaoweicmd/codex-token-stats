@@ -15,6 +15,7 @@ COLUMN_LABELS = {
     "input_tokens": "输入",
     "output_tokens": "输出",
     "reasoning_output_tokens": "思考",
+    "cost_cny": "费用(元)",
 }
 
 
@@ -35,6 +36,9 @@ def _print_summary(data: Dict[str, Any]) -> None:
     print(f"  缓存写入: {_fmt(data['cache_write_input_tokens'])}")
     print(f"  输出:   {_fmt(data['output_tokens'])}")
     print(f"  思考输出: {_fmt(data['reasoning_output_tokens'])}")
+    print(f"  费用:   ¥{data.get('cost_cny', 0):.4f}")
+    if data.get("unpriced_task_count", 0):
+        print(f"  未配置价格: {_fmt(data['unpriced_task_count'])} 个任务")
 
 
 def _print_table(rows: List[Dict[str, Any]], labels: Dict[str, str]) -> None:
@@ -49,9 +53,16 @@ def _print_table(rows: List[Dict[str, Any]], labels: Dict[str, str]) -> None:
         "input_tokens",
         "output_tokens",
         "reasoning_output_tokens",
+        "cost_cny",
     ]
     headers = [labels.get(column, column) for column in columns]
-    lines = [[_fmt(row.get(column, "")) for column in columns] for row in rows]
+    lines = [
+        [
+            (f"¥{row.get(column, 0):.4f}" if column == "cost_cny" else _fmt(row.get(column, "")))
+            for column in columns
+        ]
+        for row in rows
+    ]
     widths = [
         max(len(headers[i]), *(len(line[i]) for line in lines))
         for i in range(len(columns))
@@ -116,7 +127,7 @@ def run_report(
             print(f"任务数(含更多未显示): {total}")
             for row in rows:
                 print(
-                    f"  {_fmt(row['total_tokens']):>14}  "
+                    f"  {_fmt(row['total_tokens']):>14}  ¥{(row.get('cost_cny') or 0):.4f}  "
                     f"{row.get('project_name') or '未知项目':<24} "
                     f"{(row.get('title') or '未命名任务')[:40]}"
                 )
