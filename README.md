@@ -1,6 +1,6 @@
 # Codex Token 统计
 
-本地统计 Codex 的 token 消耗，按任务、项目、供应商、模型和统计时段汇总。只统计 token，不做费用换算，数据不离开本机。
+本地统计 Codex 的 token 消耗，按任务、项目、供应商、模型和统计时段汇总，并根据本地价格配置计算费用。数据不离开本机。
 
 ## 环境要求
 
@@ -28,6 +28,13 @@ run.bat serve
 
 面板运行期间默认每 60 秒自动扫描一次 Codex 会话，新增任务会自动入库；也可以点击页面上的“刷新数据”立即扫描。间隔可在 `config.json` 的 `scan_interval` 中调整。
 
+## 价格与费用
+
+- 网页面板和命令行报表会显示总体、项目、任务及轮次费用
+- 价格配置位于 `codex_stats/pricing.py`，按模型名称配置输入、缓存读取和输出价格，供应商信息单独统计
+- 未配置价格的模型仍会统计 token，但费用显示为“未配置”，汇总中会提示未配置任务数
+- 费用仅在本机根据 token 记录和价格配置计算，不会向外部服务发送统计数据
+
 ## 修正项目归属
 
 Codex 只记录任务的工作目录，不记录正式项目名，所以同一目录里的多个任务可能被归到同一个目录名。
@@ -43,6 +50,8 @@ Codex 只记录任务的工作目录，不记录正式项目名，所以同一�
 - `report --dimension project`：按项目汇总
 - `report --dimension provider`：按供应商汇总
 - `report --dimension task`：按任务汇总
+- `report --dimension model`：按模型汇总并显示费用
+- `report --dimension day`：按日期汇总并显示费用
 - `report --from "2026-08-01 10:00" --to "2026-08-03 18:00" --dimension day`：自定义时段按天汇总，时间精确到分钟
 - `serve --port 8765`：启动网页统计面板
 - `report --csv report.csv`、`report --json report.json`：导出结果
@@ -69,6 +78,8 @@ Codex 只记录任务的工作目录，不记录正式项目名，所以同一�
 - `default_project`：未命中任何规则时的默认项目名
 - `project_rules_mac` / `project_rules_win`：分别只对 macOS / Windows 生效，优先于通用 `project_rules`
 - `default_project_mac` / `default_project_win`：分别指定 macOS / Windows 的默认项目
+
+模型价格配置直接维护在 `codex_stats/pricing.py`。同一模型如果在不同供应商下价格不同，应使用不同的模型标识或扩展价格配置逻辑，避免混用价格。
 
 `config.json` 按系统分别配置项目规则：macOS 和 Windows 可各自指定默认项目与项目规则，未填写的一侧使用通用配置或按目录自动归组。示例见 `config.example.json`。
 
