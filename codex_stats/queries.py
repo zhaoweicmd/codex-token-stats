@@ -5,7 +5,7 @@ import sqlite3
 from datetime import date, datetime, time, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-from .pricing import cost_from_row, cost_sql
+from .pricing import cost_from_row, cost_sql, display_model
 
 USAGE_COLUMNS = (
     "input_tokens",
@@ -18,7 +18,8 @@ USAGE_COLUMNS = (
 
 UNPRICED_TASK_SQL = (
     "COUNT(DISTINCT CASE WHEN LOWER(COALESCE(t.model, '')) NOT IN "
-    "('gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-6-astra', "
+    "('gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-sol-g', '5.6 sol g', "
+    "'gpt-5.6-terra', 'gpt-6-astra', "
     "'deepseek-v4-flash', 'deepseek-v4-flash-0731', 'deepseek-v4-pro', "
     "'deepseek-v4-pro-0813') THEN t.id END) AS unpriced_task_count"
 )
@@ -237,7 +238,11 @@ def grouped(
     if limit:
         sql += " LIMIT ?"
         params.append(int(limit))
-    return [dict(row) for row in conn.execute(sql, params).fetchall()]
+    result = [dict(row) for row in conn.execute(sql, params).fetchall()]
+    if dimension == "model":
+        for row in result:
+            row["group_name"] = display_model(row.get("group_key", ""))
+    return result
 
 
 def tasks(
@@ -272,6 +277,7 @@ def tasks(
     result = []
     for row in rows:
         item = dict(row)
+        item["model_display"] = display_model(item.get("model", ""))
         item["cost_cny"] = cost_from_row(item)
         result.append(item)
     return result, int(total)
@@ -300,6 +306,7 @@ def task_detail(conn: sqlite3.Connection, task_id: str) -> Optional[Dict[str, An
     result["cache_write_input_tokens"] = result["total_cache_write_input_tokens"]
     result["output_tokens"] = result["total_output_tokens"]
     result["reasoning_output_tokens"] = result["total_reasoning_output_tokens"]
+    result["model_display"] = display_model(result.get("model", ""))
     result["cost_cny"] = cost_from_row(result)
     return result
 
@@ -320,6 +327,7 @@ def task_turns(conn: sqlite3.Connection, task_id: str) -> List[Dict[str, Any]]:
     result = []
     for row in rows:
         item = dict(row)
+        item["model_display"] = display_model(item.get("model", ""))
         item["cost_cny"] = cost_from_row(item)
         result.append(item)
     return result

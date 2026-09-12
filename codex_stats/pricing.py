@@ -26,9 +26,18 @@ MODEL_PRICING: Dict[str, ModelPricing] = {
     "deepseek-v4-pro-0813": ModelPricing(4.5000, 14.0000, 0.1500),
 }
 
+MODEL_DISPLAY_NAMES = {
+    "gpt-5.6-sol-g": "5.6 sol G",
+}
+
 
 def _key(model: str) -> str:
     return " ".join(str(model or "").strip().lower().split())
+
+
+def display_model(model: str) -> str:
+    key = _key(model)
+    return MODEL_DISPLAY_NAMES.get(key, str(model or "").strip() or "未知")
 
 
 def get_pricing(model: str) -> Optional[ModelPricing]:
@@ -39,6 +48,9 @@ def get_pricing(model: str) -> Optional[ModelPricing]:
     aliases = {
         "deepseek-v4-flash": "deepseek-v4-flash-0731",
         "deepseek-v4-flash-0731": "deepseek-v4-flash-0731",
+        # CC Switch/More Code may append a route label to the base model.
+        "gpt-5.6-sol-g": "gpt-5.6-sol",
+        "5.6 sol g": "gpt-5.6-sol",
     }
     alias = aliases.get(key)
     return MODEL_PRICING.get(alias) if alias else None
@@ -95,7 +107,7 @@ def cost_sql() -> str:
                      + tr.cached_input_tokens * 0.1400
                      + tr.cache_write_input_tokens * 0.3600
                      + tr.output_tokens * 2.8800)
-                WHEN {model} = 'gpt-5.6-sol' THEN
+                WHEN {model} IN ('gpt-5.6-sol', 'gpt-5.6-sol-g', '5.6 sol g') THEN
                     ({normal_input} * 0.8000
                      + tr.cached_input_tokens * 0.2500
                      + tr.cache_write_input_tokens * 0.8000

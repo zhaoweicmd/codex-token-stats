@@ -181,7 +181,7 @@ function renderTasks(items) {
           <td><div class="task-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title || "未命名任务")}</div></td>
           <td>${escapeHtml(item.project_name || "未知")}</td>
           <td>${escapeHtml(item.provider || "-")}</td>
-          <td>${escapeHtml(item.model || "-")}</td>
+          <td>${escapeHtml(item.model_display || item.model || "-")}</td>
           <td>${item.turn_count}</td>
           <td>${fmt.format(item.total_tokens)}</td>
           <td>${formatMoney(item.cost_cny)}</td>
@@ -236,7 +236,7 @@ async function openTask(id) {
     $("modalMeta").textContent = [
       `项目: ${task.project_name || "未知"}`,
       `供应商: ${task.provider || "-"}`,
-      `模型: ${task.model || "-"}`,
+      `模型: ${task.model_display || task.model || "-"}`,
       `创建: ${formatTime(task.created_at)}`,
       `总Token: ${fmt.format(task.total_tokens)}`,
       `费用: ${formatMoney(task.cost_cny)}`,
@@ -317,7 +317,7 @@ async function saveProject() {
     $("modalMeta").textContent = [
       `项目: ${data.task.project_name || "未知"}`,
       `供应商: ${data.task.provider || "-"}`,
-      `模型: ${data.task.model || "-"}`,
+      `模型: ${data.task.model_display || data.task.model || "-"}`,
       `创建: ${formatTime(data.task.created_at)}`,
       `总Token: ${fmt.format(data.task.total_tokens)}`,
       `费用: ${formatMoney(data.task.cost_cny)}`,
