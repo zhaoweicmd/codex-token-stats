@@ -9,18 +9,28 @@ class ModelPricing:
     input_per_million: float
     output_per_million: float
     cache_read_per_million: float
+    cache_write_rate: Optional[float] = None
 
     @property
     def cache_write_per_million(self) -> float:
-        # The supplied price list has no separate cache-write price.
-        return self.input_per_million
+        return (
+            self.cache_write_rate
+            if self.cache_write_rate is not None
+            else self.input_per_million
+        )
 
 
 MODEL_PRICING: Dict[str, ModelPricing] = {
     "gpt-5.6-luna": ModelPricing(0.3600, 2.8800, 0.1400),
     "gpt-5.6-sol": ModelPricing(0.8000, 6.4000, 0.2500),
+    "gpt-5.6-sol-g": ModelPricing(1.2000, 9.6000, 0.3750),
     "gpt-5.6-terra": ModelPricing(0.4000, 3.2000, 0.1500),
     "gpt-6-astra": ModelPricing(1.6000, 12.8000, 0.4800),
+    "gpt-6-astra-g": ModelPricing(2.4000, 19.5000, 0.7500),
+    "gpt-6-luna": ModelPricing(0.3000, 2.4000, 0.1000),
+    "gpt-6.1-sol": ModelPricing(0.4000, 3.2000, 0.1200),
+    "grok-4.7": ModelPricing(0.6000, 1.8000, 0.2000),
+    "claude-opus-4-6-a": ModelPricing(2.0000, 10.0000, 0.2000, 2.5000),
     "deepseek-v4-flash-0731": ModelPricing(1.5000, 4.5000, 0.0500),
     "deepseek-v4-pro": ModelPricing(2.0000, 4.0000, 0.0400),
     "deepseek-v4-pro-0813": ModelPricing(4.5000, 14.0000, 0.1500),
@@ -48,9 +58,7 @@ def get_pricing(model: str) -> Optional[ModelPricing]:
     aliases = {
         "deepseek-v4-flash": "deepseek-v4-flash-0731",
         "deepseek-v4-flash-0731": "deepseek-v4-flash-0731",
-        # CC Switch/More Code may append a route label to the base model.
-        "gpt-5.6-sol-g": "gpt-5.6-sol",
-        "5.6 sol g": "gpt-5.6-sol",
+        "5.6 sol g": "gpt-5.6-sol-g",
     }
     alias = aliases.get(key)
     return MODEL_PRICING.get(alias) if alias else None
@@ -107,11 +115,16 @@ def cost_sql() -> str:
                      + tr.cached_input_tokens * 0.1400
                      + tr.cache_write_input_tokens * 0.3600
                      + tr.output_tokens * 2.8800)
-                WHEN {model} IN ('gpt-5.6-sol', 'gpt-5.6-sol-g', '5.6 sol g') THEN
+                WHEN {model} = 'gpt-5.6-sol' THEN
                     ({normal_input} * 0.8000
                      + tr.cached_input_tokens * 0.2500
                      + tr.cache_write_input_tokens * 0.8000
                      + tr.output_tokens * 6.4000)
+                WHEN {model} IN ('gpt-5.6-sol-g', '5.6 sol g') THEN
+                    ({normal_input} * 1.2000
+                     + tr.cached_input_tokens * 0.3750
+                     + tr.cache_write_input_tokens * 1.2000
+                     + tr.output_tokens * 9.6000)
                 WHEN {model} = 'gpt-5.6-terra' THEN
                     ({normal_input} * 0.4000
                      + tr.cached_input_tokens * 0.1500
@@ -122,6 +135,31 @@ def cost_sql() -> str:
                      + tr.cached_input_tokens * 0.4800
                      + tr.cache_write_input_tokens * 1.6000
                      + tr.output_tokens * 12.8000)
+                WHEN {model} = 'gpt-6-astra-g' THEN
+                    ({normal_input} * 2.4000
+                     + tr.cached_input_tokens * 0.7500
+                     + tr.cache_write_input_tokens * 2.4000
+                     + tr.output_tokens * 19.5000)
+                WHEN {model} = 'gpt-6-luna' THEN
+                    ({normal_input} * 0.3000
+                     + tr.cached_input_tokens * 0.1000
+                     + tr.cache_write_input_tokens * 0.3000
+                     + tr.output_tokens * 2.4000)
+                WHEN {model} = 'gpt-6.1-sol' THEN
+                    ({normal_input} * 0.4000
+                     + tr.cached_input_tokens * 0.1200
+                     + tr.cache_write_input_tokens * 0.4000
+                     + tr.output_tokens * 3.2000)
+                WHEN {model} = 'grok-4.7' THEN
+                    ({normal_input} * 0.6000
+                     + tr.cached_input_tokens * 0.2000
+                     + tr.cache_write_input_tokens * 0.6000
+                     + tr.output_tokens * 1.8000)
+                WHEN {model} = 'claude-opus-4-6-a' THEN
+                    ({normal_input} * 2.0000
+                     + tr.cached_input_tokens * 0.2000
+                     + tr.cache_write_input_tokens * 2.5000
+                     + tr.output_tokens * 10.0000)
                 WHEN {model} IN ('deepseek-v4-flash', 'deepseek-v4-flash-0731') THEN
                     ({normal_input} * 1.5000
                      + tr.cached_input_tokens * 0.0500

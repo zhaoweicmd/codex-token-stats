@@ -19,7 +19,8 @@ USAGE_COLUMNS = (
 UNPRICED_TASK_SQL = (
     "COUNT(DISTINCT CASE WHEN LOWER(COALESCE(t.model, '')) NOT IN "
     "('gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-sol-g', '5.6 sol g', "
-    "'gpt-5.6-terra', 'gpt-6-astra', "
+    "'gpt-5.6-terra', 'gpt-6-astra', 'gpt-6-astra-g', 'gpt-6-luna', "
+    "'gpt-6.1-sol', 'grok-4.7', 'claude-opus-4-6-a', "
     "'deepseek-v4-flash', 'deepseek-v4-flash-0731', 'deepseek-v4-pro', "
     "'deepseek-v4-pro-0813') THEN t.id END) AS unpriced_task_count"
 )
